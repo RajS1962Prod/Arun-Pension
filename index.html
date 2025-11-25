@@ -99,20 +99,8 @@
         };
 
         // Auth functions
-        window.login = async () => {
-            console.log("Login button clicked");
-            try {
-                const result = await signInWithPopup(auth, provider);
-                console.log("Sign in successful", result.user);
-            } catch (error) {
-                console.error("Sign in error", error);
-                alert("Login failed: " + error.message);
-            }
-        };
-        window.logout = () => {
-            console.log("Logout button clicked");
-            signOut(auth).then(() => console.log("Sign out successful")).catch(e => console.error("Sign out error", e));
-        };
+        window.login = () => signInWithPopup(auth, provider);
+        window.logout = () => signOut(auth);
 
         // Auth state listener
         onAuthStateChanged(auth, (user) => {
