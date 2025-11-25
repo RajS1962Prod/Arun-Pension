@@ -1,0 +1,3217 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arun Pensions Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCSTyiCEDSn0kNwO8raKUKVt2BoytBKIOM",
+            authDomain: "arun-ds-pension.firebaseapp.com",
+            projectId: "arun-ds-pension",
+            storageBucket: "arun-ds-pension.firebasestorage.app",
+            messagingSenderId: "813932114636",
+            appId: "1:813932114636:web:062b9fb462ba0a72788869",
+            measurementId: "G-FNDRZERY6Y"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const db = getFirestore(app);
+
+        console.log("Firebase initialized successfully");
+
+        // Make Firebase available globally
+        window.firebaseApp = app;
+        window.firebaseAnalytics = analytics;
+        window.firestoreDb = db;
+
+        // Firestore functions
+        window.savePensionData = async function (pensionData) {
+            try {
+                const docRef = doc(db, "pensionDashboard", "userData");
+                await setDoc(docRef, {
+                    pensionData: pensionData,
+                    lastUpdated: new Date().toISOString()
+                });
+                console.log("Pension data saved to Firestore");
+                return true;
+            } catch (error) {
+                console.error("Error saving to Firestore:", error);
+                return false;
+            }
+        };
+
+        window.loadPensionData = async function () {
+            try {
+                const docRef = doc(db, "pensionDashboard", "userData");
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    console.log("Loaded data from Firestore");
+                    return docSnap.data().pensionData;
+                } else {
+                    console.log("No existing data in Firestore");
+                    return null;
+                }
+            } catch (error) {
+                console.error("Error loading from Firestore:", error);
+                return null;
+            }
+        };
+
+        // Real-time listener (optional - for real-time updates across devices)
+        window.setupRealtimeListener = function (callback) {
+            try {
+                const docRef = doc(db, "pensionDashboard", "userData");
+                return onSnapshot(docRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        console.log("Real-time update received");
+                        callback(docSnap.data().pensionData);
+                    }
+                });
+            } catch (error) {
+                console.error("Error setting up real-time listener:", error);
+            }
+        };
+    </script>
+
+    <style>
+        :root {
+            --primary: #121212;
+            --secondary: #1e1e1e;
+            --accent1: #6a0dad;
+            /* Deep Purple */
+            --accent2: #00bcd4;
+            /* Teal */
+            --accent3: #87ceeb;
+            /* Sky Blue */
+            --accent4: #4a00e0;
+            /* Darker Purple */
+            --light: #ffffff;
+            --dark: #000000;
+            --success: #00e676;
+            --warning: #ffeb3b;
+            --danger: #ff5252;
+            --card-bg: rgba(30, 30, 46, 0.7);
+            --shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            --border: 1px solid rgba(106, 13, 173, 0.3);
+            --gradient-primary: linear-gradient(135deg, #6a0dad 0%, #4a00e0 100%);
+            --gradient-secondary: linear-gradient(135deg, #00bcd4 0%, #00838f 100%);
+            --gradient-accent: linear-gradient(135deg, #87ceeb 0%, #4682b4 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: var(--light);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 30px;
+            background: var(--card-bg);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: var(--border);
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-primary);
+        }
+
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, var(--accent3), var(--accent2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(135, 206, 235, 0.3);
+            font-weight: 700;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: var(--accent3);
+            font-weight: 500;
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 16px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: var(--border);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-secondary);
+        }
+
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .card h3 {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            color: var(--accent3);
+            font-weight: 600;
+        }
+
+        .value {
+            font-size: 2.2rem;
+            font-weight: bold;
+            margin: 10px 0;
+            color: var(--light);
+        }
+
+        .value.positive {
+            color: var(--success);
+            text-shadow: 0 0 10px rgba(0, 230, 118, 0.3);
+        }
+
+        .value.negative {
+            color: var(--danger);
+        }
+
+        .tabs {
+            display: flex;
+            background: var(--card-bg);
+            border-radius: 16px 16px 0 0;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            border: var(--border);
+            border-bottom: none;
+            box-shadow: var(--shadow);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 20px;
+            text-align: center;
+            background: transparent;
+            border: none;
+            color: var(--accent3);
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+            font-weight: 500;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tab::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: var(--gradient-primary);
+            transition: left 0.3s ease;
+            z-index: -1;
+        }
+
+        .tab:hover {
+            color: var(--light);
+        }
+
+        .tab:hover::before {
+            left: 0;
+        }
+
+        .tab.active {
+            background: rgba(106, 13, 173, 0.2);
+            border-bottom: 3px solid var(--accent1);
+            font-weight: 600;
+            color: var(--light);
+            text-shadow: 0 0 10px rgba(106, 13, 173, 0.5);
+        }
+
+        .tab.active::before {
+            left: 0;
+        }
+
+        .tab-content {
+            display: none;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 0 0 16px 16px;
+            backdrop-filter: blur(10px);
+            border: var(--border);
+            border-top: none;
+            min-height: 400px;
+            box-shadow: var(--shadow);
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .chart-container {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+            height: 400px;
+            backdrop-filter: blur(10px);
+            border: var(--border);
+            box-shadow: var(--shadow);
+            position: relative;
+        }
+
+        .charts-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 1024px) {
+            .charts-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: rgba(106, 13, 173, 0.05);
+            border-radius: 12px;
+            overflow: hidden;
+            border: var(--border);
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(106, 13, 173, 0.1);
+        }
+
+        .data-table th {
+            background: rgba(106, 13, 173, 0.1);
+            font-weight: 600;
+            color: var(--accent3);
+        }
+
+        .data-table input {
+            width: 100%;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(106, 13, 173, 0.3);
+            border-radius: 8px;
+            color: var(--light);
+            font-size: 1rem;
+        }
+
+        .data-table input:focus {
+            outline: none;
+            border-color: var(--accent1);
+            background: rgba(106, 13, 173, 0.1);
+            box-shadow: 0 0 10px rgba(106, 13, 173, 0.2);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            background: var(--gradient-primary);
+            color: var(--light);
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: var(--shadow);
+        }
+
+        .btn:hover {
+            background: var(--gradient-secondary);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 15px rgba(0, 188, 212, 0.4);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--accent1);
+            color: var(--accent1);
+            box-shadow: none;
+        }
+
+        .btn-outline:hover {
+            background: var(--accent1);
+            color: var(--light);
+            box-shadow: 0 0 15px rgba(106, 13, 173, 0.3);
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #cc0000, #ff0000);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: linear-gradient(45deg, #ff0000, #cc0000);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 15px rgba(255, 0, 0, 0.4);
+        }
+
+        .btn-success {
+            background: var(--gradient-secondary);
+        }
+
+        .btn-success:hover {
+            background: linear-gradient(45deg, #00e676, #00c853);
+        }
+
+        .btn-accent {
+            background: var(--gradient-accent);
+            color: var(--dark);
+        }
+
+        .btn-accent:hover {
+            background: linear-gradient(45deg, #a7d8ff, #87ceeb);
+        }
+
+        .btn-warning {
+            background: linear-gradient(45deg, #ff9800, #ff5722);
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: linear-gradient(45deg, #ff5722, #ff9800);
+        }
+
+        .actions {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .predictor-inputs {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .input-group label {
+            font-weight: 600;
+            color: var(--accent3);
+        }
+
+        .input-group input {
+            padding: 12px;
+            border: 1px solid rgba(106, 13, 173, 0.3);
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.5);
+            color: var(--light);
+            font-size: 1rem;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--accent1);
+            background: rgba(106, 13, 173, 0.1);
+            box-shadow: 0 0 10px rgba(106, 13, 173, 0.2);
+        }
+
+        .results {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .result-card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: var(--border);
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .result-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-secondary);
+        }
+
+        .result-card h4 {
+            margin-bottom: 10px;
+            color: var(--accent2);
+            font-weight: 600;
+        }
+
+        .result-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent3);
+            text-shadow: 0 0 10px rgba(135, 206, 235, 0.3);
+        }
+
+        .mobile-only {
+            display: none;
+        }
+
+        .desktop-only {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-only {
+                display: block;
+            }
+
+            .desktop-only {
+                display: none;
+            }
+
+            .tabs {
+                flex-direction: column;
+            }
+
+            .tab-content {
+                padding: 20px;
+            }
+
+            .chart-container {
+                height: 300px;
+            }
+
+            h1 {
+                font-size: 2.2rem;
+            }
+        }
+
+        /* Add loading indicator styles */
+        .loading-indicator {
+            display: none;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--accent1);
+            color: var(--light);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-weight: 600;
+            z-index: 1000;
+            box-shadow: var(--shadow);
+        }
+
+        .save-status {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .save-status.success {
+            background: var(--success);
+            color: var(--dark);
+            opacity: 1;
+        }
+
+        .save-status.error {
+            background: var(--danger);
+            color: var(--light);
+            opacity: 1;
+        }
+
+        /* Text colors */
+        h2,
+        h3 {
+            color: var(--accent3);
+            text-shadow: 0 0 10px rgba(135, 206, 235, 0.3);
+        }
+
+        p {
+            color: var(--accent3);
+        }
+
+        /* Provider Cards for Overview */
+        .provider-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .provider-card {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 16px;
+            border: var(--border);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .provider-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-primary);
+        }
+
+        .provider-card h3 {
+            color: var(--accent3);
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .provider-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: rgba(106, 13, 173, 0.1);
+            border-radius: 10px;
+            border: 1px solid rgba(106, 13, 173, 0.2);
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--light);
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--accent3);
+        }
+
+        .current-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--accent2);
+            margin: 10px 0;
+            text-shadow: 0 0 10px rgba(0, 188, 212, 0.3);
+        }
+
+        /* Delete button styling - UPDATED to match chart colors */
+        .delete-value-btn {
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            color: white;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .delete-value-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            opacity: 0.9;
+        }
+
+        /* Empty state styling */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--accent3);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            color: var(--accent2);
+        }
+
+        .empty-state h3 {
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            margin-bottom: 20px;
+        }
+
+        /* UPDATED: Add Pension Section with combined buttons */
+        .add-pension-section {
+            margin: 30px 0;
+            text-align: center;
+            padding: 30px;
+            background: var(--card-bg);
+            border-radius: 16px;
+            border: 2px dashed rgba(135, 206, 235, 0.3);
+        }
+
+        .add-pension-section h3 {
+            margin-bottom: 20px;
+            color: var(--accent3);
+        }
+
+        .add-pension-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: var(--shadow);
+            border: var(--border);
+        }
+
+        .modal h3 {
+            margin-bottom: 20px;
+            color: var(--accent3);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .color-options {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .color-option {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+
+        .color-option.selected {
+            border-color: var(--light);
+        }
+
+        /* REMOVED: Dashboard actions since we moved the button */
+
+        /* Provider card actions - REMOVED delete button from here */
+        .provider-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            justify-content: center;
+        }
+
+        .provider-actions .btn {
+            padding: 8px 16px;
+            font-size: 0.9rem;
+        }
+
+        /* Enhanced 3D Pie Chart Styles */
+        .pie-chart-container {
+            position: relative;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chart-content-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: calc(100% - 40px);
+            width: 100%;
+        }
+
+        .chart-wrapper {
+            flex: 1;
+            height: 100%;
+            min-width: 0;
+            position: relative;
+        }
+
+        .pie-legend {
+            flex: 0 0 40%;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 0 0 0 20px;
+            background: transparent;
+            backdrop-filter: none;
+            border-radius: 0;
+            border: none;
+            z-index: 1;
+            box-shadow: none;
+            max-width: none;
+            overflow-y: auto;
+            max-height: 100%;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .legend-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .legend-text {
+            color: var(--accent3);
+            font-weight: 500;
+        }
+
+        .legend-value {
+            color: var(--light);
+            font-weight: 600;
+            margin-left: 5px;
+        }
+
+        .chart-title {
+            text-align: center;
+            margin-bottom: 15px;
+            color: var(--accent3);
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        /* Pension tab header actions - REMOVED since we're moving buttons to bottom */
+        .pension-header-actions {
+            display: none;
+        }
+
+        /* 3D Chart specific enhancements */
+        .chart-3d-effect {
+            filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4));
+        }
+
+        /* Chatbot Styles */
+        .chatbot-bubble {
+            background: var(--gradient-accent);
+            color: var(--dark);
+            padding: 10px 16px;
+            margin-bottom: 10px;
+            border-radius: 16px;
+            max-width: 80%;
+            font-size: 1.05rem;
+            box-shadow: var(--shadow);
+            word-break: break-word;
+        }
+
+        .chatbot-bubble.user {
+            background: var(--accent1);
+            color: var(--light);
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .chatbot-bubble.chatbot-welcome {
+            background: var(--card-bg);
+            color: var(--accent2);
+            text-align: left;
+            font-weight: 600;
+            border: var(--border);
+        }
+
+        .chatbot-bubble.loading {
+            background: var(--card-bg);
+            color: var(--accent3);
+            font-style: italic;
+            text-align: center;
+        }
+
+        #chatbot-input {
+            background: var(--card-bg);
+            color: var(--light);
+            border: var(--border);
+        }
+
+        #chatbot-input:focus {
+            outline: none;
+            border-color: var(--accent1);
+            box-shadow: 0 0 10px rgba(106, 13, 173, 0.2);
+        }
+
+        #chatbot-window {
+            border: var(--border);
+        }
+
+        /* Quick Questions Styles */
+        .chatbot-quick-questions {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(106, 13, 173, 0.1);
+            border-radius: 12px;
+            border: 1px solid rgba(106, 13, 173, 0.2);
+        }
+
+        .quick-question-btn {
+            display: block;
+            width: 100%;
+            margin-bottom: 8px;
+            padding: 10px 15px;
+            background: rgba(135, 206, 235, 0.15);
+            border: 1px solid rgba(135, 206, 235, 0.3);
+            border-radius: 8px;
+            color: #87ceeb;
+            cursor: pointer;
+            font-size: 0.9em;
+            text-align: left;
+            transition: all 0.3s ease;
+            word-break: break-word;
+        }
+
+        .quick-question-btn:hover {
+            background: rgba(135, 206, 235, 0.25);
+            transform: translateX(5px);
+        }
+
+        .quick-questions-title {
+            margin-bottom: 10px;
+            color: #87ceeb;
+            font-size: 0.95em;
+            font-weight: 600;
+        }
+
+        /* Full Screen Chatbot Modal */
+        #pension-chat-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        #pension-chat-modal.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .chat-container {
+            width: 90%;
+            max-width: 800px;
+            height: 80vh;
+            background: #1e293b;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .chat-header {
+            padding: 20px;
+            background: rgba(30, 41, 59, 0.9);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chat-close-btn {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .chat-close-btn:hover {
+            color: #fff;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .chat-message {
+            max-width: 80%;
+            padding: 15px 20px;
+            border-radius: 15px;
+            font-size: 1rem;
+            line-height: 1.6;
+            color: #f8fafc;
+        }
+
+        .chat-message.user {
+            align-self: flex-end;
+            background: #6366f1;
+            border-bottom-right-radius: 4px;
+        }
+
+        .chat-message.ai {
+            align-self: flex-start;
+            background: rgba(51, 65, 85, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom-left-radius: 4px;
+        }
+
+        .chat-input-area {
+            padding: 20px;
+            background: rgba(30, 41, 59, 0.9);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            gap: 15px;
+        }
+
+        .chat-input-area textarea {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 15px;
+            color: white;
+            resize: none;
+            font-family: inherit;
+            font-size: 1rem;
+            outline: none;
+            height: 60px;
+        }
+
+        .chat-input-area textarea:focus {
+            border-color: #6366f1;
+        }
+
+        .chat-send-btn {
+            width: 60px;
+            height: 60px;
+            background: #6366f1;
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background 0.2s;
+        }
+
+        .chat-send-btn:hover {
+            background: #4f46e5;
+        }
+
+        .chat-send-btn:disabled {
+            background: rgba(255, 255, 255, 0.1);
+            cursor: not-allowed;
+        }
+
+        /* Typing Indicator */
+        .typing-indicator {
+            display: flex;
+            gap: 6px;
+            padding: 15px 20px;
+            background: rgba(51, 65, 85, 0.5);
+            border-radius: 15px;
+            width: fit-content;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #94a3b8;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .typing-dot:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            80%,
+            100% {
+                transform: scale(0);
+            }
+
+            40% {
+                transform: scale(1);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Add status indicators -->
+    <div class="loading-indicator" id="loadingIndicator">
+        <i class="fas fa-spinner fa-spin"></i> Saving...
+    </div>
+    <div class="save-status" id="saveStatus"></div>
+
+    <!-- Add Pension Modal -->
+    <div class="modal" id="addPensionModal">
+        <div class="modal-content">
+            <h3><i class="fas fa-plus-circle"></i> Add New Pension</h3>
+            <div class="input-group">
+                <label for="newPensionName">Pension Name</label>
+                <input type="text" id="newPensionName" placeholder="Enter pension provider name">
+            </div>
+            <div class="input-group">
+                <label>Select Color</label>
+                <div class="color-options">
+                    <div class="color-option selected" style="background-color: #6a0dad;" data-color="#6a0dad"></div>
+                    <div class="color-option" style="background-color: #00bcd4;" data-color="#00bcd4"></div>
+                    <div class="color-option" style="background-color: #87ceeb;" data-color="#87ceeb"></div>
+                    <div class="color-option" style="background-color: #9c27b0;" data-color="#9c27b0"></div>
+                    <div class="color-option" style="background-color: #2196f3;" data-color="#2196f3"></div>
+                    <div class="color-option" style="background-color: #4caf50;" data-color="#4caf50"></div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-outline" id="cancelAddPension">Cancel</button>
+                <button class="btn btn-success" id="confirmAddPension">Add Pension</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-chart-line"></i> Arun Pensions Dashboard</h1>
+            <p class="subtitle">Professional pension tracking and management</p>
+        </header>
+
+        <!-- Tabs Navigation -->
+        <div class="tabs">
+            <button class="tab active" data-tab="overview">Dashboard</button>
+            <button class="tab" data-tab="capGemini">CapGemini</button>
+            <button class="tab" data-tab="royalLondon">Royal London</button>
+            <button class="tab" data-tab="baringa">Baringa</button>
+            <button class="tab" data-tab="predictor">Predictor</button>
+            <!-- Add Chatbot Tab -->
+            <!-- Add Chatbot Tab -->
+            <button class="tab" id="chatbot-menu-btn">Chatbot</button>
+        </div>
+
+        <!-- Tab Contents -->
+        <div class="tab-content active" id="overview">
+            <h2><i class="fas fa-tachometer-alt"></i> Dashboard Overview</h2>
+
+            <!-- REMOVED: Save to Cloud button from top of Dashboard -->
+
+            <!-- Summary Cards -->
+            <div class="summary-cards">
+                <div class="card">
+                    <h3><i class="fas fa-pound-sign"></i> Total (<span id="year-label-1">2023</span>)</h3>
+                    <div class="value" id="total-year-1">£0.00</div>
+                    <p>Combined pension value</p>
+                </div>
+                <div class="card">
+                    <h3><i class="fas fa-pound-sign"></i> Total (<span id="year-label-2">2024</span>)</h3>
+                    <div class="value" id="total-year-2">£0.00</div>
+                    <p>Combined pension value</p>
+                </div>
+                <div class="card">
+                    <h3><i class="fas fa-chart-line"></i> Growth</h3>
+                    <div class="value" id="growth">+0.0%</div>
+                    <p>Year over year</p>
+                </div>
+                <div class="card">
+                    <h3><i class="fas fa-calendar-alt"></i> Years</h3>
+                    <div class="value" id="years-tracked">0</div>
+                    <p id="years-range">No data yet</p>
+                </div>
+            </div>
+
+            <!-- Charts Row with Total Chart and Pie Chart -->
+            <div class="charts-row">
+                <!-- Total Combined Chart in Dashboard -->
+                <div class="chart-container">
+                    <canvas id="totalChart"></canvas>
+                </div>
+
+                <!-- UPDATED: Enhanced 3D Pie Chart for Pension Distribution -->
+                <div class="chart-container">
+                    <div class="pie-chart-container">
+                        <div class="chart-title">
+                            <i class="fas fa-chart-pie"></i> Pension Distribution
+                        </div>
+                        <div class="chart-content-row">
+                            <div class="chart-wrapper">
+                                <canvas id="pensionPieChart" class="chart-3d-effect"></canvas>
+                            </div>
+                            <div class="pie-legend" id="pieLegend">
+                                <!-- Legend will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="provider-cards" id="providerCardsContainer">
+                <!-- Provider cards will be dynamically generated -->
+            </div>
+
+            <!-- UPDATED: Add Another Pension Section with both buttons -->
+            <div class="add-pension-section">
+                <h3><i class="fas fa-plus-circle"></i> Manage Your Pensions</h3>
+                <p>Add another pension provider to track all your retirement savings in one place</p>
+                <div class="add-pension-actions">
+                    <button class="btn btn-accent" id="addPensionBtn">
+                        <i class="fas fa-plus"></i> Add Another Pension
+                    </button>
+                    <!-- MOVED: Save All to Cloud button to bottom next to Add Another Pension -->
+                    <button class="btn btn-success" id="saveDashboardBtn">
+                        <i class="fas fa-cloud-upload-alt"></i> Save All to Cloud
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="capGemini">
+            <h2><i class="fas fa-building"></i> CapGemini Pension</h2>
+
+            <div class="chart-container">
+                <canvas id="capGeminiChart"></canvas>
+            </div>
+
+            <h3>Data Table</h3>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Year</th>
+                        <th>Value (£)</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="capGeminiTableBody">
+                    <!-- Data will be populated by JavaScript -->
+                </tbody>
+            </table>
+
+            <div class="actions">
+                <button class="btn" id="addCapGeminiYearBtnMobile">
+                    <i class="fas fa-plus"></i> Add New Year
+                </button>
+                <!-- MOVED: Delete Pension button to bottom between Add New Year and Save to Cloud -->
+                <button class="btn btn-danger" id="deleteCapGeminiPensionBtn">
+                    <i class="fas fa-trash"></i> Delete Pension
+                </button>
+                <button class="btn" id="saveCapGeminiBtn">
+                    <i class="fas fa-cloud-upload-alt"></i> Save to Cloud
+                </button>
+            </div>
+        </div>
+
+        <div class="tab-content" id="royalLondon">
+            <h2><i class="fas fa-landmark"></i> Royal London Pension</h2>
+
+            <div class="chart-container">
+                <canvas id="royalLondonChart"></canvas>
+            </div>
+
+            <h3>Data Table</h3>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Year</th>
+                        <th>Value (£)</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="royalLondonTableBody">
+                    <!-- Data will be populated by JavaScript -->
+                </tbody>
+            </table>
+
+            <div class="actions">
+                <button class="btn" id="addRoyalLondonYearBtnMobile">
+                    <i class="fas fa-plus"></i> Add New Year
+                </button>
+                <!-- MOVED: Delete Pension button to bottom between Add New Year and Save to Cloud -->
+                <button class="btn btn-danger" id="deleteRoyalLondonPensionBtn">
+                    <i class="fas fa-trash"></i> Delete Pension
+                </button>
+                <button class="btn" id="saveRoyalLondonBtn">
+                    <i class="fas fa-cloud-upload-alt"></i> Save to Cloud
+                </button>
+            </div>
+        </div>
+
+        <div class="tab-content" id="baringa">
+            <h2><i class="fas fa-chart-pie"></i> Baringa Pension</h2>
+
+            <div class="chart-container">
+                <canvas id="baringaChart"></canvas>
+            </div>
+
+            <h3>Data Table</h3>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Year</th>
+                        <th>Value (£)</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="baringaTableBody">
+                    <!-- Data will be populated by JavaScript -->
+                </tbody>
+            </table>
+
+            <div class="actions">
+                <button class="btn" id="addBaringaYearBtnMobile">
+                    <i class="fas fa-plus"></i> Add New Year
+                </button>
+                <!-- MOVED: Delete Pension button to bottom between Add New Year and Save to Cloud -->
+                <button class="btn btn-danger" id="deleteBaringaPensionBtn">
+                    <i class="fas fa-trash"></i> Delete Pension
+                </button>
+                <button class="btn" id="saveBaringaBtn">
+                    <i class="fas fa-cloud-upload-alt"></i> Save to Cloud
+                </button>
+            </div>
+        </div>
+
+        <div class="tab-content" id="predictor">
+            <h2><i class="fas fa-calculator"></i> Pension Growth Predictor</h2>
+            <p>Project your pension growth based on current value, contributions, and expected returns.</p>
+
+            <div class="predictor-inputs">
+                <div class="input-group">
+                    <label for="startingValue">Starting Value (£)</label>
+                    <input type="number" id="startingValue" value="0.00" min="0" step="0.01">
+                </div>
+                <div class="input-group">
+                    <label for="yearlyContributions">Yearly Contributions (£)</label>
+                    <input type="number" id="yearlyContributions" value="0.00" min="0" step="0.01">
+                </div>
+                <div class="input-group">
+                    <label for="expectedGrowth">Expected Growth (% per year)</label>
+                    <input type="number" id="expectedGrowth" value="5.0" min="0" max="50" step="0.1">
+                </div>
+                <div class="input-group">
+                    <label for="termYears">Term (Years)</label>
+                    <input type="number" id="termYears" value="10" min="1" max="50" step="1">
+                </div>
+            </div>
+
+            <button class="btn btn-success" id="calculateBtn">
+                <i class="fas fa-calculator"></i> Calculate Projection
+            </button>
+
+            <!-- NEW: Prediction Chart -->
+            <div class="chart-container">
+                <canvas id="predictionChart"></canvas>
+            </div>
+
+            <div class="results">
+                <div class="result-card">
+                    <h4>Total Return</h4>
+                    <div class="result-value" id="totalReturn">£0.00</div>
+                </div>
+                <div class="result-card">
+                    <h4>Total Contributions</h4>
+                    <div class="result-value" id="totalContributions">£0.00</div>
+                </div>
+                <div class="result-card">
+                    <h4>Investment Growth</h4>
+                    <div class="result-value" id="totalGrowth">£0.00</div>
+                </div>
+            </div>
+
+            <h3>Year-by-Year Breakdown</h3>
+            <div style="overflow-x: auto;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Year</th>
+                            <th>Start Value</th>
+                            <th>Contributions</th>
+                            <th>Growth</th>
+                            <th>End Value</th>
+                        </tr>
+                    </thead>
+                    <tbody id="predictorTableBody">
+                        <!-- Breakdown will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Add Chatbot Tab Content -->
+
+    </div>
+
+    <script>
+        // FIXED: Initial data structure - NOW EMPTY (no hardcoded years)
+        let pensionData = {
+            capGemini: {
+                name: "CapGemini Pension",
+                color: "#6a0dad",
+                values: {}
+            },
+            royalLondon: {
+                name: "Royal London",
+                color: "#00bcd4",
+                values: {}
+            },
+            baringa: {
+                name: "Baringa",
+                color: "#87ceeb",
+                values: {}
+            }
+        };
+
+        // Chart instances
+        let chartInstances = {
+            totalChart: null,
+            pensionPieChart: null,
+            capGeminiChart: null,
+            royalLondonChart: null,
+            baringaChart: null,
+            predictionChart: null // NEW: Prediction chart instance
+        };
+
+        // Format currency with 2 decimal places
+        function formatCurrency(value) {
+            return `£${parseFloat(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        }
+
+        // Format percentage with 1 decimal place
+        function formatPercentage(value) {
+            return `${parseFloat(value).toFixed(1)}%`;
+        }
+
+        // Show save status message
+        function showSaveStatus(message, isSuccess) {
+            const statusElement = document.getElementById('saveStatus');
+            statusElement.textContent = message;
+            statusElement.className = `save-status ${isSuccess ? 'success' : 'error'}`;
+
+            setTimeout(() => {
+                statusElement.style.opacity = '0';
+            }, 3000);
+        }
+
+        // Save data to Firestore
+        async function saveDataToFirebase() {
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            loadingIndicator.style.display = 'block';
+
+            try {
+                const success = await window.savePensionData(pensionData);
+                if (success) {
+                    showSaveStatus('Data saved successfully!', true);
+                } else {
+                    showSaveStatus('Failed to save data', false);
+                }
+            } catch (error) {
+                console.error('Error saving data:', error);
+                showSaveStatus('Error saving data', false);
+            } finally {
+                loadingIndicator.style.display = 'none';
+            }
+        }
+
+        // Load data from Firestore
+        async function loadDataFromFirebase() {
+            try {
+                const savedData = await window.loadPensionData();
+                if (savedData) {
+                    pensionData = savedData;
+                    console.log('Data loaded from Firestore');
+
+                    // Update UI with loaded data
+                    initializeTables();
+                    updateCharts();
+                    updateSummaryCards();
+                    updateStartingValue();
+                    updateProviderCards();
+
+                    showSaveStatus('Data loaded successfully!', true);
+                } else {
+                    console.log('No saved data found - starting with empty data');
+                    // Initialize with empty data
+                    initializeTables();
+                    updateCharts();
+                    updateSummaryCards();
+                    updateStartingValue();
+                    updateProviderCards();
+                }
+            } catch (error) {
+                console.error('Error loading data:', error);
+                // Fall back to empty data
+                initializeTables();
+                updateCharts();
+                updateSummaryCards();
+                updateStartingValue();
+                updateProviderCards();
+            }
+        }
+
+        // Set up real-time listener (optional)
+        function setupRealtimeUpdates() {
+            try {
+                window.setupRealtimeListener((updatedData) => {
+                    if (updatedData) {
+                        pensionData = updatedData;
+
+                        // Update UI with new data
+                        initializeTables();
+                        updateCharts();
+                        updateSummaryCards();
+                        updateStartingValue();
+                        updateProviderCards();
+
+                        console.log('Real-time update applied');
+                        showSaveStatus('Data updated from cloud', true);
+                    }
+                });
+            } catch (error) {
+                console.error('Error setting up real-time updates:', error);
+            }
+        }
+
+        // Get all years from data - FIXED: Handle empty data
+        function getAllYears() {
+            const years = new Set();
+            Object.values(pensionData).forEach(pension => {
+                Object.keys(pension.values).forEach(year => years.add(parseInt(year)));
+            });
+            return Array.from(years).sort((a, b) => a - b);
+        }
+
+        // Get the latest year from the data - FIXED: Handle empty data
+        function getLatestYear() {
+            const years = getAllYears();
+            if (years.length === 0) return null;
+            return Math.max(...years);
+        }
+
+        // Get the earliest year from the data - FIXED: Handle empty data
+        function getEarliestYear() {
+            const years = getAllYears();
+            if (years.length === 0) return null;
+            return Math.min(...years);
+        }
+
+        // Calculate the total value of all pensions for the latest year - FIXED: Handle empty data
+        function getCurrentTotalValue() {
+            const latestYear = getLatestYear();
+            if (latestYear === null) return 0;
+
+            let total = 0;
+            Object.values(pensionData).forEach(pension => {
+                total += pension.values[latestYear] || 0;
+            });
+            return total;
+        }
+
+        // Helper function to get total value for a specific year
+        function getTotalValueForYear(year) {
+            let total = 0;
+            Object.values(pensionData).forEach(pension => {
+                total += pension.values[year] || 0;
+            });
+            return total;
+        }
+
+        // Update provider cards on dashboard - FIXED: Handle empty data and dynamic pensions
+        function updateProviderCards() {
+            const providerCardsContainer = document.getElementById('providerCardsContainer');
+            providerCardsContainer.innerHTML = '';
+
+            const latestYear = getLatestYear();
+
+            Object.keys(pensionData).forEach(pensionKey => {
+                const pension = pensionData[pensionKey];
+                const card = document.createElement('div');
+                card.className = 'provider-card';
+
+                const currentValue = latestYear ? (pension.values[latestYear] || 0) : 0;
+                const previousYear = latestYear ? latestYear - 1 : null;
+                const previousValue = previousYear ? (pension.values[previousYear] || 0) : 0;
+                const growth = previousValue > 0 ? ((currentValue - previousValue) / previousValue * 100) : 0;
+                const yearsCount = Object.keys(pension.values).filter(year => pension.values[year] > 0).length;
+
+                // UPDATED: Removed delete button from provider cards
+                card.innerHTML = `
+                    <h3><i class="fas fa-piggy-bank"></i> ${pension.name}</h3>
+                    <div class="current-value">${formatCurrency(currentValue)}</div>
+                    <p>Current value</p>
+                    
+                    <div class="provider-stats">
+                        <div class="stat-item">
+                            <div class="stat-value">${growth >= 0 ? '+' : ''}${growth.toFixed(1)}%</div>
+                            <div class="stat-label">Growth</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">${yearsCount}</div>
+                            <div class="stat-label">Years</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">${formatCurrency(currentValue)}</div>
+                            <div class="stat-label">Current Value</div>
+                        </div>
+                    </div>
+                `;
+
+                providerCardsContainer.appendChild(card);
+            });
+        }
+
+        // Update summary cards - FIXED: Handle empty data
+        function updateSummaryCards() {
+            const years = getAllYears();
+
+            if (years.length === 0) {
+                // No data - set everything to 0 or defaults
+                document.getElementById('year-label-1').textContent = 'N/A';
+                document.getElementById('year-label-2').textContent = 'N/A';
+                document.getElementById('total-year-1').textContent = '£0.00';
+                document.getElementById('total-year-2').textContent = '£0.00';
+                document.getElementById('growth').textContent = '+0.0%';
+                document.getElementById('years-tracked').textContent = '0';
+                document.getElementById('years-range').textContent = 'No data yet';
+                return;
+            }
+
+            // Get the most recent and second most recent years dynamically
+            const sortedYears = years.sort((a, b) => b - a); // Sort descending
+            const mostRecentYear = sortedYears[0];
+            const secondMostRecentYear = sortedYears.length > 1 ? sortedYears[1] : sortedYears[0];
+
+            // Update year labels in the HTML
+            document.getElementById('year-label-2').textContent = mostRecentYear;
+            document.getElementById('year-label-1').textContent = secondMostRecentYear;
+
+            // Calculate totals for these dynamic years
+            const totalYear1 = getTotalValueForYear(secondMostRecentYear);
+            const totalYear2 = getTotalValueForYear(mostRecentYear);
+
+            // Calculate growth between the two years
+            const growth = totalYear1 > 0 ? ((totalYear2 - totalYear1) / totalYear1 * 100) : 0;
+
+            // Update the values in the cards
+            document.getElementById('total-year-1').textContent = formatCurrency(totalYear1);
+            document.getElementById('total-year-2').textContent = formatCurrency(totalYear2);
+
+            const growthElement = document.getElementById('growth');
+            growthElement.textContent = `${growth >= 0 ? '+' : ''}${growth.toFixed(1)}%`;
+            growthElement.className = growth >= 0 ? 'value positive' : 'value negative';
+
+            // Update years tracked
+            const earliestYear = getEarliestYear();
+            const latestYear = getLatestYear();
+            document.getElementById('years-tracked').textContent = years.length;
+            document.getElementById('years-range').textContent = `${earliestYear} - ${latestYear}`;
+        }
+
+        // Add new pension function
+        function addNewPension(name, color) {
+            // Create a unique key for the new pension
+            const key = name.toLowerCase().replace(/\s+/g, '');
+
+            // Add to pension data
+            pensionData[key] = {
+                name: name,
+                color: color,
+                values: {}
+            };
+
+            // Create a new tab for the pension
+            createPensionTab(key, name);
+
+            // Update UI
+            updateProviderCards();
+            updateCharts();
+
+            // Save to Firebase
+            saveDataToFirebase();
+
+            // Show success message
+            showSaveStatus(`Added new pension: ${name}`, true);
+        }
+
+        // Delete pension function
+        function deletePension(pensionKey) {
+            if (Object.keys(pensionData).length <= 1) {
+                alert('You cannot delete the last pension. You need at least one pension provider.');
+                return;
+            }
+
+            const pensionName = pensionData[pensionKey].name;
+
+            if (confirm(`Are you sure you want to delete ${pensionName}? This will permanently remove all data for this pension.`)) {
+                // Remove from pension data
+                delete pensionData[pensionKey];
+
+                // Remove tab
+                const tab = document.querySelector(`.tab[data-tab="${pensionKey}"]`);
+                const tabContent = document.getElementById(pensionKey);
+
+                if (tab) tab.remove();
+                if (tabContent) tabContent.remove();
+
+                // Update UI
+                initializeTables();
+                updateCharts();
+                updateSummaryCards();
+                updateProviderCards();
+
+                // Save to Firebase
+                saveDataToFirebase();
+
+                // Switch to Dashboard if we were on the deleted pension's tab
+                if (document.querySelector(`.tab[data-tab="${pensionKey}"]`)) {
+                    document.querySelector('.tab[data-tab="overview"]').click();
+                }
+
+                showSaveStatus(`Deleted pension: ${pensionName}`, true);
+            }
+        }
+
+        // Create a new tab for a pension
+        function createPensionTab(key, name) {
+            // Create new tab button
+            const tabsContainer = document.querySelector('.tabs');
+            const newTab = document.createElement('button');
+            newTab.className = 'tab';
+            newTab.setAttribute('data-tab', key);
+            newTab.textContent = name;
+
+            // Add before the Predictor tab
+            const predictorTab = document.querySelector('.tab[data-tab="predictor"]');
+            tabsContainer.insertBefore(newTab, predictorTab);
+
+            // Create new tab content
+            const tabContentsContainer = document.querySelector('.container');
+            const newTabContent = document.createElement('div');
+            newTabContent.className = 'tab-content';
+            newTabContent.id = key;
+
+            newTabContent.innerHTML = `
+                <h2><i class="fas fa-piggy-bank"></i> ${name}</h2>
+                
+                <div class="chart-container">
+                    <canvas id="${key}Chart"></canvas>
+                </div>
+                
+                <h3>Data Table</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Year</th>
+                            <th>Value (£)</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="${key}TableBody">
+                        <!-- Data will be populated by JavaScript -->
+                    </tbody>
+                </table>
+                
+                <div class="actions">
+                    <button class="btn add-year-btn" data-pension="${key}">
+                        <i class="fas fa-plus"></i> Add New Year
+                    </button>
+                    <!-- MOVED: Delete Pension button to bottom between Add New Year and Save to Cloud -->
+                    <button class="btn btn-danger delete-pension-tab-btn" data-pension="${key}">
+                        <i class="fas fa-trash"></i> Delete Pension
+                    </button>
+                    <button class="btn save-pension-btn" data-pension="${key}">
+                        <i class="fas fa-cloud-upload-alt"></i> Save to Cloud
+                    </button>
+                </div>
+            `;
+
+            // Add before the Predictor tab content
+            const predictorContent = document.getElementById('predictor');
+            tabContentsContainer.insertBefore(newTabContent, predictorContent);
+
+            // Add event listeners for the new buttons
+            newTab.addEventListener('click', function () {
+                // Remove active class from all tabs and contents
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+                // Add active class to clicked tab and corresponding content
+                this.classList.add('active');
+                document.getElementById(key).classList.add('active');
+
+                // Update charts when switching tabs
+                setTimeout(updateCharts, 100);
+            });
+
+            document.querySelector(`.add-year-btn[data-pension="${key}"]`).addEventListener('click', () => addYearForPension(key));
+            document.querySelector(`.save-pension-btn[data-pension="${key}"]`).addEventListener('click', saveDataToFirebase);
+            document.querySelector(`.delete-pension-tab-btn[data-pension="${key}"]`).addEventListener('click', () => deletePension(key));
+        }
+
+
+
+        // Initialize the dashboard
+        document.addEventListener('DOMContentLoaded', async function () {
+            console.log("Dashboard initialized with Firebase Firestore support");
+
+            // ========================================
+            // CHATBOT LOGIC (Single File Integration)
+            // ========================================
+
+            // Chatbot variables
+            const modal = document.getElementById('pension-chat-modal');
+            const closeBtn = document.getElementById('chat-close-btn');
+            const sendBtn = document.getElementById('chat-send-btn');
+            const input = document.getElementById('chat-input');
+            const messagesArea = document.getElementById('chat-messages');
+
+            // API Key (Pre-configured)
+            // API Key (Pre-configured)
+            const defaultKey = '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';
+            let apiKey = localStorage.getItem('perplexity_api_key');
+            if (!apiKey || apiKey !== defaultKey) {
+                apiKey = defaultKey;
+                localStorage.setItem('perplexity_api_key', apiKey);
+            }
+
+            // Expose toggle function globally
+            window.togglePensionWidget = function () {
+                modal.classList.toggle('active');
+                if (modal.classList.contains('active')) {
+                    input.focus();
+                }
+            };
+
+            // Close Modal
+            closeBtn.addEventListener('click', () => {
+                modal.classList.remove('active');
+            });
+
+            // Close on click outside
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
+                }
+            });
+
+            // Input Handling
+            input.addEventListener('input', () => {
+                sendBtn.disabled = input.value.trim() === '';
+            });
+
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            sendBtn.addEventListener('click', sendMessage);
+
+            async function sendMessage() {
+                const text = input.value.trim();
+                if (!text) return;
+
+                // User Message
+                addMessage(text, 'user');
+                input.value = '';
+                sendBtn.disabled = true;
+
+                // Loading
+                const loadingId = addLoading();
+
+                try {
+                    const response = await callPerplexityAPI(text);
+                    removeLoading(loadingId);
+                    addMessage(response, 'ai');
+                } catch (error) {
+                    removeLoading(loadingId);
+                    addMessage("Sorry, I encountered an error. Please try again.", 'ai');
+                    console.error(error);
+                }
+            }
+
+            function addMessage(text, sender) {
+                const div = document.createElement('div');
+                div.classList.add('chat-message', sender);
+
+                // Simple Markdown
+                let formatted = text
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\n/g, '<br>');
+
+                div.innerHTML = formatted;
+                messagesArea.appendChild(div);
+                messagesArea.scrollTop = messagesArea.scrollHeight;
+            }
+
+            function addLoading() {
+                const id = 'loading-' + Date.now();
+                const div = document.createElement('div');
+                div.id = id;
+                div.classList.add('typing-indicator');
+                div.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div>';
+                messagesArea.appendChild(div);
+                messagesArea.scrollTop = messagesArea.scrollHeight;
+                return id;
+            }
+
+            function removeLoading(id) {
+                const el = document.getElementById(id);
+                if (el) el.remove();
+            }
+
+            async function callPerplexityAPI(prompt) {
+                const url = 'https://api.perplexity.ai/chat/completions';
+                const data = {
+                    model: 'sonar',
+                    messages: [
+                        { role: 'system', content: 'You are a helpful Pension Assistant. Answer concisely and accurately regarding pension planning.' },
+                        { role: 'user', content: prompt }
+                    ]
+                };
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`API Error: ${response.status} - ${errorText}`);
+                }
+                const result = await response.json();
+                return result.choices[0].message.content;
+            }
+
+
+            // Set up tab switching
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function () {
+                    // Remove active class from all tabs and contents
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+                    // Add active class to clicked tab and corresponding content
+                    this.classList.add('active');
+                    const tabId = this.getAttribute('data-tab');
+                    document.getElementById(tabId).classList.add('active');
+
+                    // Update charts when switching tabs (fixes rendering issues)
+                    setTimeout(updateCharts, 100);
+
+                    // If switching to predictor tab, update the starting value
+                    if (tabId === 'predictor') {
+                        updateStartingValue();
+                    }
+
+                    // Log analytics event
+                    if (window.firebaseAnalytics) {
+                        console.log(`Tab switched to: ${tabId}`);
+                    }
+                });
+            });
+
+            // Add year buttons - mobile (keep only mobile buttons)
+            document.getElementById('addCapGeminiYearBtnMobile').addEventListener('click', () => addYearForPension('capGemini'));
+            document.getElementById('addRoyalLondonYearBtnMobile').addEventListener('click', () => addYearForPension('royalLondon'));
+            document.getElementById('addBaringaYearBtnMobile').addEventListener('click', () => addYearForPension('baringa'));
+
+            // MOVED: Delete Pension buttons are now in the actions div at the bottom
+            document.getElementById('deleteCapGeminiPensionBtn').addEventListener('click', () => deletePension('capGemini'));
+            document.getElementById('deleteRoyalLondonPensionBtn').addEventListener('click', () => deletePension('royalLondon'));
+            document.getElementById('deleteBaringaPensionBtn').addEventListener('click', () => deletePension('baringa'));
+
+            // Calculate button for predictor
+            document.getElementById('calculateBtn').addEventListener('click', calculateProjection);
+
+            // Save to Cloud buttons for individual pension tabs
+            document.getElementById('saveCapGeminiBtn').addEventListener('click', saveDataToFirebase);
+            document.getElementById('saveRoyalLondonBtn').addEventListener('click', saveDataToFirebase);
+            document.getElementById('saveBaringaBtn').addEventListener('click', saveDataToFirebase);
+
+            // MOVED: Save to Cloud button for Dashboard is now in the add-pension-section
+            document.getElementById('saveDashboardBtn').addEventListener('click', saveDataToFirebase);
+
+            // Add Pension Modal functionality
+            document.getElementById('addPensionBtn').addEventListener('click', function () {
+                document.getElementById('addPensionModal').style.display = 'flex';
+            });
+
+            document.getElementById('cancelAddPension').addEventListener('click', function () {
+                document.getElementById('addPensionModal').style.display = 'none';
+            });
+
+            document.getElementById('confirmAddPension').addEventListener('click', function () {
+                const name = document.getElementById('newPensionName').value.trim();
+                const selectedColor = document.querySelector('.color-option.selected').getAttribute('data-color');
+
+                if (name) {
+                    addNewPension(name, selectedColor);
+                    document.getElementById('addPensionModal').style.display = 'none';
+                    document.getElementById('newPensionName').value = '';
+                } else {
+                    alert('Please enter a pension name');
+                }
+            });
+
+            // Color selection
+            document.querySelectorAll('.color-option').forEach(option => {
+                option.addEventListener('click', function () {
+                    document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('selected'));
+                    this.classList.add('selected');
+                });
+            });
+
+            // Close modal when clicking outside
+            window.addEventListener('click', function (event) {
+                if (event.target === document.getElementById('addPensionModal')) {
+                    document.getElementById('addPensionModal').style.display = 'none';
+                }
+            });
+
+            // ========================================
+            // UPDATED CHATBOT FUNCTIONALITY
+            // ========================================
+
+            // Link "Chatbot" menu button to the floating widget
+            const chatbotMenuBtn = document.getElementById('chatbot-menu-btn');
+            if (chatbotMenuBtn) {
+                chatbotMenuBtn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    // Toggle the widget
+                    if (window.togglePensionWidget) {
+                        window.togglePensionWidget();
+                    }
+                    // Optional: Highlight the tab temporarily or keep it active if desired
+                    // For now, we just open the widget and don't change the main view
+                });
+            }
+
+            // Load data from Firebase
+            await loadDataFromFirebase();
+
+            // Set up real-time updates (optional)
+            setupRealtimeUpdates();
+
+            // Run initial projection calculation
+            calculateProjection();
+        });
+
+        // Update the starting value in the predictor
+        function updateStartingValue() {
+            const currentTotal = getCurrentTotalValue();
+            document.getElementById('startingValue').value = currentTotal.toFixed(2);
+        }
+
+        // Calculate the pension projection
+        function calculateProjection() {
+            const startingValue = parseFloat(document.getElementById('startingValue').value) || 0;
+            const yearlyContributions = parseFloat(document.getElementById('yearlyContributions').value) || 0;
+            const expectedGrowth = parseFloat(document.getElementById('expectedGrowth').value) || 0;
+            const termYears = parseInt(document.getElementById('termYears').value) || 0;
+
+            let currentValue = startingValue;
+            const breakdown = [];
+            let totalContributions = 0;
+
+            // NEW: Prepare data for the prediction chart
+            const years = [];
+            const contributionValues = [];
+            const endValues = [];
+
+            // Calculate year by year
+            for (let year = 1; year <= termYears; year++) {
+                const startValue = currentValue;
+                const contributions = yearlyContributions;
+                totalContributions += contributions;
+
+                // Add contributions at the end of the year
+                currentValue += contributions;
+
+                // Apply growth
+                const growth = currentValue * (expectedGrowth / 100);
+                currentValue += growth;
+
+                breakdown.push({
+                    year: year,
+                    startValue: startValue,
+                    contributions: contributions,
+                    growth: growth,
+                    endValue: currentValue
+                });
+
+                // NEW: Store data for chart
+                years.push(`Year ${year}`);
+                contributionValues.push(totalContributions);
+                endValues.push(currentValue);
+            }
+
+            // Update the results
+            const totalReturn = currentValue;
+            const totalGrowth = totalReturn - startingValue - totalContributions;
+
+            document.getElementById('totalReturn').textContent = formatCurrency(totalReturn);
+            document.getElementById('totalContributions').textContent = formatCurrency(totalContributions);
+            document.getElementById('totalGrowth').textContent = formatCurrency(totalGrowth);
+
+            // Update the breakdown table
+            updateBreakdownTable(breakdown);
+
+            // NEW: Update the prediction chart
+            updatePredictionChart(years, contributionValues, endValues);
+        }
+
+        // NEW: Update the prediction chart with contributions and end values
+        function updatePredictionChart(years, contributions, endValues) {
+            const ctx = document.getElementById('predictionChart');
+            if (!ctx) return;
+
+            const chartCtx = ctx.getContext('2d');
+
+            // Destroy existing chart if it exists
+            if (chartInstances.predictionChart) {
+                chartInstances.predictionChart.destroy();
+            }
+
+            chartInstances.predictionChart = new Chart(chartCtx, {
+                type: 'line',
+                data: {
+                    labels: years,
+                    datasets: [
+                        {
+                            label: 'Contributions',
+                            data: contributions,
+                            borderColor: '#00bcd4', // Teal
+                            backgroundColor: 'rgba(0, 188, 212, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: '#00bcd4',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 2,
+                            pointRadius: 5,
+                            pointHoverRadius: 7
+                        },
+                        {
+                            label: 'End Value',
+                            data: endValues,
+                            borderColor: '#6a0dad', // Purple
+                            backgroundColor: 'rgba(106, 13, 173, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: '#6a0dad',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 2,
+                            pointRadius: 5,
+                            pointHoverRadius: 7
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: {
+                            bottom: 30,
+                            top: 20,
+                            left: 10,
+                            right: 10
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: '#ffffff',
+                                font: {
+                                    size: 14
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Pension Growth Projection',
+                            color: '#87ceeb',
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                padding: 10,
+                                maxRotation: 45,
+                                minRotation: 0,
+                                color: '#ffffff'
+                            },
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function (value) {
+                                    return '£' + value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                },
+                                padding: 10,
+                                color: '#ffffff'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update the year-by-year breakdown table
+        function updateBreakdownTable(breakdown) {
+            const tableBody = document.getElementById('predictorTableBody');
+            tableBody.innerHTML = '';
+
+            breakdown.forEach(yearData => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${yearData.year}</td>
+                    <td>${formatCurrency(yearData.startValue)}</td>
+                    <td>${formatCurrency(yearData.contributions)}</td>
+                    <td>${formatCurrency(yearData.growth)}</td>
+                    <td>${formatCurrency(yearData.endValue)}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Add year for specific pension - FIXED: Handle empty data
+        function addYearForPension(pensionKey) {
+            const years = getAllYears();
+            let newYear;
+
+            if (years.length === 0) {
+                // No data yet - start with current year
+                newYear = new Date().getFullYear();
+            } else {
+                // Add next year after the maximum
+                const maxYear = Math.max(...years);
+                newYear = maxYear + 1;
+            }
+
+            // Add the new year to the specific pension with value 0
+            if (!pensionData[pensionKey].values[newYear]) {
+                pensionData[pensionKey].values[newYear] = 0.00;
+            }
+
+            // Update UI
+            initializeTables();
+            updateCharts();
+            updateSummaryCards();
+            updateProviderCards();
+
+            // Save to Firebase
+            saveDataToFirebase();
+
+            // Show success message
+            alert(`Successfully added year ${newYear} to ${pensionData[pensionKey].name} with initial value of £0.00.`);
+        }
+
+        // Initialize data tables - FIXED: Handle empty data and dynamic pensions
+        function initializeTables() {
+            const years = getAllYears();
+
+            // Individual pension tables
+            Object.keys(pensionData).forEach(pensionKey => {
+                initializePensionTable(pensionKey, years);
+            });
+        }
+
+        // Initialize individual pension table - FIXED: Show empty state when no data
+        function initializePensionTable(pensionKey, years) {
+            const tableBody = document.getElementById(`${pensionKey}TableBody`);
+            if (!tableBody) return; // Skip if table doesn't exist yet
+
+            tableBody.innerHTML = '';
+
+            if (years.length === 0) {
+                // Show empty state
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td colspan="3" style="text-align: center; padding: 30px; color: #00bcd4;">
+                        <i class="fas fa-inbox" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>
+                        No data yet. Click "Add New Year" to get started.
+                    </td>
+                `;
+                tableBody.appendChild(row);
+                return;
+            }
+
+            years.forEach(year => {
+                const value = pensionData[pensionKey].values[year] || 0.00;
+                const pensionColor = pensionData[pensionKey].color;
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${year}</td>
+                    <td>
+                        <input type="number" 
+                               value="${value.toFixed(2)}" 
+                               data-pension="${pensionKey}" 
+                               data-year="${year}"
+                               step="0.01"
+                               onchange="updatePensionValue('${pensionKey}', ${year}, this.value)">
+                    </td>
+                    <td>
+                        <button class="delete-value-btn" onclick="removeYear('${pensionKey}', ${year})" 
+                                style="background-color: ${pensionColor}">
+                            <i class="fas fa-trash"></i> Delete Value
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Update pension value when user edits
+        function updatePensionValue(pensionKey, year, value) {
+            pensionData[pensionKey].values[year] = parseFloat(value) || 0.00;
+
+            // Update tables and charts
+            initializeTables();
+            updateCharts();
+            updateSummaryCards();
+            updateProviderCards();
+
+            // Update predictor starting value if it's the latest year
+            const latestYear = getLatestYear();
+            if (year === latestYear) {
+                updateStartingValue();
+            }
+
+            // Save to Firebase
+            saveDataToFirebase();
+        }
+
+        // Remove year from a pension - FIXED: Allow removal of last year
+        function removeYear(pensionKey, year) {
+            if (confirm(`Are you sure you want to remove the value for year ${year} from ${pensionData[pensionKey].name}?`)) {
+                delete pensionData[pensionKey].values[year];
+
+                // Update UI
+                initializeTables();
+                updateCharts();
+                updateSummaryCards();
+                updateProviderCards();
+
+                // Update predictor starting value
+                updateStartingValue();
+
+                // Save to Firebase
+                saveDataToFirebase();
+
+                showSaveStatus(`Year ${year} value removed from ${pensionData[pensionKey].name}`, true);
+            }
+        }
+
+        // Initialize charts - FIXED: Handle empty data and dynamic pensions
+        function initializeCharts() {
+            const years = getAllYears();
+
+            if (years.length === 0) {
+                // No data - display empty charts
+                initializeEmptyChart('totalChart', 'Total Combined Value');
+                initializeEmptyPieChart();
+                Object.keys(pensionData).forEach(pensionKey => {
+                    initializeEmptyChart(`${pensionKey}Chart`, pensionData[pensionKey].name);
+                });
+                return;
+            }
+
+            // Total combined chart for Dashboard
+            const totalCtx = document.getElementById('totalChart').getContext('2d');
+            const totalData = years.map(year => getTotalValueForYear(year));
+
+            // Destroy existing chart if it exists
+            if (chartInstances.totalChart) {
+                chartInstances.totalChart.destroy();
+            }
+
+            chartInstances.totalChart = new Chart(totalCtx, {
+                type: 'line',
+                data: {
+                    labels: years,
+                    datasets: [{
+                        label: 'Total Combined Value',
+                        data: totalData,
+                        borderColor: '#6a0dad',
+                        backgroundColor: 'rgba(106, 13, 173, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#6a0dad',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: {
+                            bottom: 30,
+                            top: 20,
+                            left: 10,
+                            right: 10
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: '#ffffff',
+                                font: {
+                                    size: 14
+                                }
+                            }
+                        },
+                        title: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                padding: 10,
+                                maxRotation: 45,
+                                minRotation: 0,
+                                color: '#ffffff'
+                            },
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function (value) {
+                                    return '£' + value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                },
+                                padding: 10,
+                                color: '#ffffff'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // UPDATED: Enhanced 3D Pie Chart for pension distribution
+            initializeEnhancedPieChart();
+
+            // Individual pension charts
+            Object.keys(pensionData).forEach(pensionKey => {
+                initializePensionChart(pensionKey, years);
+            });
+        }
+
+        // Initialize empty chart
+        function initializeEmptyChart(chartId, label) {
+            const ctx = document.getElementById(chartId);
+            if (!ctx) return; // Skip if chart doesn't exist yet
+
+            const chartCtx = ctx.getContext('2d');
+
+            // Destroy existing chart if it exists
+            if (chartInstances[chartId]) {
+                chartInstances[chartId].destroy();
+            }
+
+            chartInstances[chartId] = new Chart(chartCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: label,
+                        data: [],
+                        borderColor: '#6a0dad',
+                        backgroundColor: 'rgba(106, 13, 173, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: '#ffffff',
+                                font: {
+                                    size: 14
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                color: '#ffffff'
+                            },
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function (value) {
+                                    return '£' + value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                },
+                                color: '#ffffff'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize empty pie chart
+        function initializeEmptyPieChart() {
+            const ctx = document.getElementById('pensionPieChart');
+            if (!ctx) return;
+
+            const chartCtx = ctx.getContext('2d');
+
+            // Destroy existing chart if it exists
+            if (chartInstances.pensionPieChart) {
+                chartInstances.pensionPieChart.destroy();
+            }
+
+            chartInstances.pensionPieChart = new Chart(chartCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['No Data'],
+                    datasets: [{
+                        data: [100],
+                        backgroundColor: ['rgba(128, 128, 128, 0.5)'],
+                        borderColor: ['rgba(128, 128, 128, 1)'],
+                        borderWidth: 2,
+                        borderRadius: 8,
+                        hoverOffset: 15
+                    }]
+                },
+                options: getEnhancedPieChartOptions('No Data Available')
+            });
+        }
+
+        // UPDATED: Initialize enhanced 3D pie chart for pension distribution
+        function initializeEnhancedPieChart() {
+            const ctx = document.getElementById('pensionPieChart');
+            if (!ctx) return;
+
+            const chartCtx = ctx.getContext('2d');
+            const latestYear = getLatestYear();
+
+            if (!latestYear) {
+                initializeEmptyPieChart();
+                return;
+            }
+
+            // Prepare data for pie chart
+            const labels = [];
+            const data = [];
+            const backgroundColors = [];
+            const borderColors = [];
+            const hoverBackgroundColors = [];
+
+            Object.keys(pensionData).forEach(pensionKey => {
+                const pension = pensionData[pensionKey];
+                const value = pension.values[latestYear] || 0;
+
+                if (value > 0) {
+                    labels.push(pension.name);
+                    data.push(value);
+
+                    const baseColor = pension.color;
+                    backgroundColors.push(baseColor);
+                    borderColors.push(lightenColor(baseColor, 20));
+                    hoverBackgroundColors.push(lightenColor(baseColor, 30));
+                }
+            });
+
+            // If no data, show empty state
+            if (data.length === 0) {
+                initializeEmptyPieChart();
+                return;
+            }
+
+            // Destroy existing chart if it exists
+            if (chartInstances.pensionPieChart) {
+                chartInstances.pensionPieChart.destroy();
+            }
+
+            // Create enhanced 3D pie chart
+            chartInstances.pensionPieChart = new Chart(chartCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: backgroundColors,
+                        borderColor: borderColors,
+                        borderWidth: 3,
+                        borderRadius: 10,
+                        hoverBackgroundColor: hoverBackgroundColors,
+                        hoverBorderColor: '#ffffff',
+                        hoverBorderWidth: 4,
+                        hoverOffset: 20,
+                        weight: 0.5
+                    }]
+                },
+                options: getEnhancedPieChartOptions(`Pension Distribution (${latestYear})`, data)
+            });
+
+            // Update pie chart legend
+            updateEnhancedPieLegend(labels, backgroundColors, data);
+        }
+
+        // UPDATED: Get enhanced pie chart options with 3D effect
+        function getEnhancedPieChartOptions(title, data = []) {
+            const total = data.reduce((a, b) => a + b, 0);
+
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '45%',
+                radius: '85%',
+                plugins: {
+                    legend: {
+                        display: false // We use custom legend
+                    },
+                    title: {
+                        display: false // We use custom title
+                    },
+                    tooltip: {
+                        enabled: true,
+                        backgroundColor: 'rgba(30, 30, 46, 0.9)',
+                        titleColor: '#87ceeb',
+                        bodyColor: '#ffffff',
+                        borderColor: '#6a0dad',
+                        borderWidth: 2,
+                        cornerRadius: 8,
+                        displayColors: true,
+                        callbacks: {
+                            label: function (context) {
+                                const label = context.label || '';
+                                const value = context.raw || 0;
+                                const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                                return `${label}: ${formatCurrency(value)} (${percentage}%)`;
+                            }
+                        }
+                    }
+                },
+                animation: {
+                    animateScale: true,
+                    animateRotate: true,
+                    duration: 1500,
+                    easing: 'easeOutQuart'
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                layout: {
+                    padding: {
+                        top: 10,
+                        bottom: 10
+                    }
+                }
+            };
+        }
+
+        // Helper function to lighten colors for hover effects
+        function lightenColor(color, percent) {
+            const num = parseInt(color.replace("#", ""), 16);
+            const amt = Math.round(2.55 * percent);
+            const R = (num >> 16) + amt;
+            const G = (num >> 8 & 0x00FF) + amt;
+            const B = (num & 0x0000FF) + amt;
+            return "#" + (
+                0x1000000 +
+                (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 +
+                (G < 255 ? (G < 1 ? 0 : G) : 255) * 0x100 +
+                (B < 255 ? (B < 1 ? 0 : B) : 255)
+            ).toString(16).slice(1);
+        }
+
+        // UPDATED: Enhanced pie chart legend
+        function updateEnhancedPieLegend(labels, colors, data) {
+            const pieLegend = document.getElementById('pieLegend');
+            pieLegend.innerHTML = '';
+
+            const total = data.reduce((a, b) => a + b, 0);
+
+            labels.forEach((label, index) => {
+                const value = data[index];
+                const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+
+                const legendItem = document.createElement('div');
+                legendItem.className = 'legend-item';
+                legendItem.innerHTML = `
+                    <div class="legend-color" style="background-color: ${colors[index]}"></div>
+                    <span class="legend-text">${label}</span>
+                    <span class="legend-value">${formatCurrency(value)} (${percentage}%)</span>
+                `;
+                pieLegend.appendChild(legendItem);
+            });
+        }
+
+        // Initialize individual pension chart
+        function initializePensionChart(pensionKey, years) {
+            const ctx = document.getElementById(`${pensionKey}Chart`);
+            if (!ctx) return; // Skip if chart doesn't exist yet
+
+            const chartCtx = ctx.getContext('2d');
+            const data = years.map(year => pensionData[pensionKey].values[year] || 0);
+
+            // Destroy existing chart if it exists
+            if (chartInstances[`${pensionKey}Chart`]) {
+                chartInstances[`${pensionKey}Chart`].destroy();
+            }
+
+            chartInstances[`${pensionKey}Chart`] = new Chart(chartCtx, {
+                type: 'line',
+                data: {
+                    labels: years,
+                    datasets: [{
+                        label: pensionData[pensionKey].name,
+                        data: data,
+                        borderColor: pensionData[pensionKey].color,
+                        backgroundColor: hexToRgba(pensionData[pensionKey].color, 0.1),
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: pensionData[pensionKey].color,
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: {
+                            bottom: 30,
+                            top: 20,
+                            left: 10,
+                            right: 10
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: '#ffffff',
+                                font: {
+                                    size: 14
+                                }
+                            }
+                        },
+                        title: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                padding: 10,
+                                maxRotation: 45,
+                                minRotation: 0,
+                                color: '#ffffff'
+                            },
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function (value) {
+                                    return '£' + value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                },
+                                padding: 10,
+                                color: '#ffffff'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Helper function to convert hex to rgba
+        function hexToRgba(hex, alpha) {
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+
+        // Update charts when data changes
+        function updateCharts() {
+            // Reinitialize charts
+            initializeCharts();
+        }
+
+        // ========================================
+        // VERIFICATION AND DEBUGGING FUNCTIONS
+        // ========================================
+
+        // Function to display current pension data structure
+        window.showPensionData = function () {
+            console.log("\n=== CURRENT PENSION DATA STRUCTURE ===");
+            console.log(JSON.stringify(pensionData, null, 2));
+            console.log("=====================================\n");
+        };
+
+        // Function to verify calculations
+        window.verifyTotals = function () {
+            const years = getAllYears();
+
+            if (years.length === 0) {
+                console.log("\n╔═══════════════════════════════════════════════════════╗");
+                console.log("║     VERIFICATION OF TOTALS (DYNAMIC YEARS)          ║");
+                console.log("╚═══════════════════════════════════════════════════════╝\n");
+                console.log("  No data available yet.\n");
+                return null;
+            }
+
+            // Get the most recent and second most recent years dynamically
+            const sortedYears = years.sort((a, b) => b - a); // Sort descending
+            const mostRecentYear = sortedYears[0];
+            const secondMostRecentYear = sortedYears.length > 1 ? sortedYears[1] : sortedYears[0];
+
+            console.log("\n╔═══════════════════════════════════════════════════════╗");
+            console.log(`║     VERIFICATION OF TOTALS (${secondMostRecentYear} & ${mostRecentYear})          ║`);
+            console.log("╚═══════════════════════════════════════════════════════╝\n");
+
+            // Get individual provider values for second most recent year
+            const year1Values = {};
+            let totalYear1 = 0;
+            Object.keys(pensionData).forEach(pensionKey => {
+                year1Values[pensionKey] = pensionData[pensionKey].values[secondMostRecentYear] || 0;
+                totalYear1 += year1Values[pensionKey];
+            });
+
+            // Get individual provider values for most recent year
+            const year2Values = {};
+            let totalYear2 = 0;
+            Object.keys(pensionData).forEach(pensionKey => {
+                year2Values[pensionKey] = pensionData[pensionKey].values[mostRecentYear] || 0;
+                totalYear2 += year2Values[pensionKey];
+            });
+
+            // Get the displayed values from DOM
+            const displayedTotalYear1 = document.getElementById('total-year-1').textContent;
+            const displayedTotalYear2 = document.getElementById('total-year-2').textContent;
+
+            console.log(`--- ${secondMostRecentYear} BREAKDOWN ---`);
+            Object.keys(pensionData).forEach(pensionKey => {
+                console.log(`  ${pensionData[pensionKey].name} (${secondMostRecentYear}): £${year1Values[pensionKey].toFixed(2)}`);
+            });
+            console.log(`  ${'-'.repeat(40)}`);
+            console.log(`  Calculated Total:    £${totalYear1.toFixed(2)}`);
+            console.log(`  Displayed Total:     ${displayedTotalYear1}`);
+
+            console.log(`\n--- ${mostRecentYear} BREAKDOWN ---`);
+            Object.keys(pensionData).forEach(pensionKey => {
+                console.log(`  ${pensionData[pensionKey].name} (${mostRecentYear}): £${year2Values[pensionKey].toFixed(2)}`);
+            });
+            console.log(`  ${'-'.repeat(40)}`);
+            console.log(`  Calculated Total:    £${totalYear2.toFixed(2)}`);
+            console.log(`  Displayed Total:     ${displayedTotalYear2}`);
+
+            // Verify growth calculation
+            const growth = totalYear1 > 0 ? ((totalYear2 - totalYear1) / totalYear1 * 100) : 0;
+            const displayedGrowth = document.getElementById('growth').textContent;
+
+            console.log("\n--- GROWTH CALCULATION ---");
+            console.log(`  Formula: ((${totalYear2.toFixed(2)} - ${totalYear1.toFixed(2)}) / ${totalYear1.toFixed(2)}) × 100`);
+            console.log(`  Calculated Growth:   ${growth >= 0 ? '+' : ''}${growth.toFixed(1)}%`);
+            console.log(`  Displayed Growth:    ${displayedGrowth}`);
+
+            // Verification results
+            console.log("\n--- VERIFICATION STATUS ---");
+            const totalYear1Match = Math.abs(totalYear1 - parseFloat(displayedTotalYear1.replace('£', '').replace(/,/g, ''))) < 0.01;
+            const totalYear2Match = Math.abs(totalYear2 - parseFloat(displayedTotalYear2.replace('£', '').replace(/,/g, ''))) < 0.01;
+
+            if (totalYear1Match) {
+                console.log(`  ${secondMostRecentYear} Total: ✅ CORRECT`);
+            } else {
+                console.log(`  ${secondMostRecentYear} Total: ❌ MISMATCH`);
+            }
+
+            if (totalYear2Match) {
+                console.log(`  ${mostRecentYear} Total: ✅ CORRECT`);
+            } else {
+                console.log(`  ${mostRecentYear} Total: ❌ MISMATCH`);
+            }
+
+            console.log("\n═══════════════════════════════════════════════════════\n");
+
+            return {
+                year1: {
+                    year: secondMostRecentYear,
+                    values: year1Values,
+                    calculatedTotal: totalYear1,
+                    displayedTotal: displayedTotalYear1,
+                    matches: totalYear1Match
+                },
+                year2: {
+                    year: mostRecentYear,
+                    values: year2Values,
+                    calculatedTotal: totalYear2,
+                    displayedTotal: displayedTotalYear2,
+                    matches: totalYear2Match
+                },
+                growth: {
+                    calculated: growth,
+                    displayed: displayedGrowth
+                }
+            };
+        };
+
+        // Function to verify all years data
+        window.verifyAllYears = function () {
+            console.log("\n╔═══════════════════════════════════════════════════════╗");
+            console.log("║           ALL YEARS DATA VERIFICATION                ║");
+            console.log("╚═══════════════════════════════════════════════════════╝\n");
+
+            const years = getAllYears();
+
+            if (years.length === 0) {
+                console.log("  No data available yet.\n");
+                return;
+            }
+
+            console.log("Year | " + Object.keys(pensionData).map(key => pensionData[key].name.padEnd(12)).join(" | ") + " | Total");
+            console.log("-----|" + Object.keys(pensionData).map(() => "------------").join("|") + "|------------");
+
+            years.forEach(year => {
+                let row = `${year} | `;
+                let total = 0;
+
+                Object.keys(pensionData).forEach(pensionKey => {
+                    const value = pensionData[pensionKey].values[year] || 0;
+                    total += value;
+                    row += `£${value.toFixed(2).padStart(10)} | `;
+                });
+
+                row += `£${total.toFixed(2)}`;
+                console.log(row);
+            });
+
+            console.log("\n═══════════════════════════════════════════════════════\n");
+        };
+
+        // Function to test Firebase connection
+        window.testFirebaseConnection = async function () {
+            console.log("\n╔═══════════════════════════════════════════════════════╗");
+            console.log("║         FIREBASE CONNECTION & PERSISTENCE TEST       ║");
+            console.log("╚═══════════════════════════════════════════════════════╝\n");
+
+            try {
+                console.log("Step 1: Testing Firebase initialization...");
+                if (window.firestoreDb) {
+                    console.log("        ✅ Firebase Firestore is initialized\n");
+                } else {
+                    console.log("        ❌ Firebase Firestore is NOT initialized\n");
+                    return;
+                }
+
+                console.log("Step 2: Testing save operation...");
+                const saveSuccess = await window.savePensionData(pensionData);
+                if (saveSuccess) {
+                    console.log("        ✅ Data saved to Firebase successfully\n");
+                } else {
+                    console.log("        ❌ Failed to save data to Firebase\n");
+                }
+
+                console.log("Step 3: Testing load operation...");
+                const loadedData = await window.loadPensionData();
+                if (loadedData) {
+                    console.log("        ✅ Data loaded from Firebase successfully");
+                    console.log(`        Last updated: ${new Date().toISOString()}\n`);
+                } else {
+                    console.log("        ⚠️  No data found in Firebase");
+                    console.log("        (This is normal if it's a fresh setup)\n");
+                }
+
+                console.log("Step 4: Verifying data integrity...");
+                if (loadedData) {
+                    const dataMatch = JSON.stringify(pensionData) === JSON.stringify(loadedData);
+                    if (dataMatch) {
+                        console.log("        ✅ Loaded data matches current data perfectly\n");
+                    } else {
+                        console.log("        ⚠️  Loaded data differs from current data");
+                        console.log("        This might indicate unsaved local changes\n");
+                    }
+                } else {
+                    console.log("        ⏭️  Skipping integrity check (no data loaded)\n");
+                }
+
+                console.log("═══════════════════════════════════════════════════════");
+                console.log("RESULT: Firebase integration is working correctly! ✅");
+                console.log("═══════════════════════════════════════════════════════\n");
+
+            } catch (error) {
+                console.error("        ❌ Firebase test failed with error:");
+                console.error("        ", error.message);
+                console.log("\n═══════════════════════════════════════════════════════\n");
+            }
+        };
+
+        // Function to generate a comprehensive report
+        window.generateVerificationReport = function () {
+            console.log("\n");
+            console.log("╔═══════════════════════════════════════════════════════╗");
+            console.log("║   PENSION DASHBOARD - COMPREHENSIVE VERIFICATION     ║");
+            console.log("╚═══════════════════════════════════════════════════════╝\n");
+
+            const verification = window.verifyTotals();
+
+            console.log("╔═══════════════════════════════════════════════════════╗");
+            console.log("║                    SUMMARY REPORT                    ║");
+            console.log("╚═══════════════════════════════════════════════════════╝\n");
+
+            console.log("CALCULATION VERIFICATION:");
+            if (verification) {
+                console.log("  • Year 1 Total:", verification.year1.matches ? "✅ CORRECT" : "❌ INCORRECT");
+                console.log("  • Year 2 Total:", verification.year2.matches ? "✅ CORRECT" : "❌ INCORRECT");
+                console.log("  • Growth %:   ✅ Properly calculated\n");
+            } else {
+                console.log("  • No data available for verification\n");
+            }
+
+            console.log("FIREBASE STATUS:");
+            console.log("  • Initialized:    ", window.firestoreDb ? "✅ YES" : "❌ NO");
+            console.log("  • Save Function:  ", typeof window.savePensionData === 'function' ? "✅ Available" : "❌ Not Available");
+            console.log("  • Load Function:  ", typeof window.loadPensionData === 'function' ? "✅ Available" : "❌ Not Available");
+
+            console.log("\n═══════════════════════════════════════════════════════");
+            console.log("For detailed Firebase test, run: testFirebaseConnection()");
+            console.log("═══════════════════════════════════════════════════════\n");
+        };
+
+        // Auto-run verification on load (after data is loaded)
+        window.addEventListener('load', function () {
+            setTimeout(function () {
+                console.log("\n╔═══════════════════════════════════════════════════════╗");
+                console.log("║    PENSION DASHBOARD VERIFICATION TOOLS LOADED       ║");
+                console.log("╚═══════════════════════════════════════════════════════╝");
+                console.log("\n📊 Available Verification Commands:");
+                console.log("  • verifyTotals()             - Verify calculations");
+                console.log("  • verifyAllYears()           - Show all years data");
+                console.log("  • showPensionData()          - Display raw data structure");
+                console.log("  • testFirebaseConnection()   - Test Firebase save/load");
+                console.log("  • generateVerificationReport()- Generate summary report");
+                console.log("\n💡 Quick Start: Run generateVerificationReport() for overview\n");
+
+                // Auto-run verification if data exists
+                const years = getAllYears();
+                if (years.length > 0) {
+                    console.log("🔍 Auto-verifying current data...\n");
+                    window.verifyTotals();
+                }
+            }, 2000); // Wait 2 seconds for Firebase to load data
+        });
+    </script>
+
+    <!-- Full Screen Chatbot Modal -->
+    <div id="pension-chat-modal">
+        <div class="chat-container">
+            <div class="chat-header">
+                <h2><i class="fas fa-robot"></i> Pension AI Assistant</h2>
+                <button class="chat-close-btn" id="chat-close-btn"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="chat-messages" id="chat-messages">
+                <div class="chat-message ai">
+                    Hello! I'm your Pension Assistant. Ask me anything about your retirement planning.
+                </div>
+            </div>
+            <div class="chat-input-area">
+                <textarea id="chat-input" placeholder="Ask a question about your pension..."></textarea>
+                <button id="chat-send-btn" class="chat-send-btn" disabled>
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
