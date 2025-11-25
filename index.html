@@ -14,6 +14,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
         import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         // Your web app's Firebase configuration
         const firebaseConfig = {
@@ -30,6 +31,8 @@
         const app = initializeApp(firebaseConfig);
         const analytics = getAnalytics(app);
         const db = getFirestore(app);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
 
         console.log("Firebase initialized successfully");
 
@@ -40,12 +43,17 @@
 
         // Firestore functions
         window.savePensionData = async function (pensionData) {
+            if (!auth.currentUser) {
+                console.error("User not authenticated");
+                return false;
+            }
             try {
                 const docRef = doc(db, "pensionDashboard", "userData");
+                // Use merge: true to preserve authorizedUsers field
                 await setDoc(docRef, {
                     pensionData: pensionData,
                     lastUpdated: new Date().toISOString()
-                });
+                }, { merge: true });
                 console.log("Pension data saved to Firestore");
                 return true;
             } catch (error) {
@@ -79,13 +87,55 @@
                 return onSnapshot(docRef, (docSnap) => {
                     if (docSnap.exists()) {
                         console.log("Real-time update received");
-                        callback(docSnap.data().pensionData);
+                        // Only update if we have data
+                        if (docSnap.data().pensionData) {
+                            callback(docSnap.data().pensionData);
+                        }
                     }
                 });
             } catch (error) {
                 console.error("Error setting up real-time listener:", error);
             }
         };
+
+        // Auth functions
+        window.login = async () => {
+            console.log("Login button clicked");
+            try {
+                const result = await signInWithPopup(auth, provider);
+                console.log("Sign in successful", result.user);
+            } catch (error) {
+                console.error("Sign in error", error);
+                alert("Login failed: " + error.message);
+            }
+        };
+        window.logout = () => {
+            console.log("Logout button clicked");
+            signOut(auth).then(() => console.log("Sign out successful")).catch(e => console.error("Sign out error", e));
+        };
+
+        // Auth state listener
+        onAuthStateChanged(auth, (user) => {
+            const loginBtn = document.getElementById('login-btn');
+            const userInfo = document.getElementById('user-info');
+            const userName = document.getElementById('user-name');
+
+            if (user) {
+                if (loginBtn) loginBtn.style.display = 'none';
+                if (userInfo) userInfo.style.display = 'flex';
+                if (userName) userName.textContent = user.displayName || user.email;
+                console.log("User logged in:", user.uid);
+
+                // Trigger data load
+                if (window.loadDataFromFirebase) {
+                    window.loadDataFromFirebase();
+                }
+            } else {
+                if (loginBtn) loginBtn.style.display = 'block';
+                if (userInfo) userInfo.style.display = 'none';
+                console.log("User logged out");
+            }
+        });
     </script>
 
     <style>
@@ -1219,6 +1269,14 @@
 
     <div class="container">
         <header>
+            <div id="auth-container" style="position: absolute; top: 20px; right: 20px; z-index: 100;">
+                <button id="login-btn" class="btn btn-accent" onclick="window.login()">Login</button>
+                <div id="user-info" style="display: none; align-items: center; gap: 10px;">
+                    <span id="user-name" style="color: var(--light); font-weight: bold;"></span>
+                    <button id="logout-btn" class="btn btn-danger" style="padding: 5px 10px; font-size: 0.8rem;"
+                        onclick="window.logout()">Logout</button>
+                </div>
+            </div>
             <h1><i class="fas fa-chart-line"></i> Arun Pensions Dashboard</h1>
             <p class="subtitle">Professional pension tracking and management</p>
         </header>
@@ -2136,8 +2194,8 @@
                 });
             }
 
-            // Load data from Firebase
-            await loadDataFromFirebase();
+            // Load data from Firebase - MOVED to Auth State Listener
+            // await loadDataFromFirebase();
 
             // Set up real-time updates (optional)
             setupRealtimeUpdates();
