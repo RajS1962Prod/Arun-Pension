@@ -1229,6 +1229,24 @@
     </div>
     <div class="save-status" id="saveStatus"></div>
 
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <h3><i class="fas fa-cog"></i> Settings</h3>
+            <div class="form-group">
+                <label for="apiKeyInput">Perplexity API Key</label>
+                <input type="password" id="apiKeyInput" placeholder="Enter your Perplexity API Key">
+                <small style="color: #aaa; display: block; margin-top: 5px;">
+                    Key is stored locally in your browser.
+                </small>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-danger" id="closeSettingsBtn">Cancel</button>
+                <button class="btn btn-success" id="saveSettingsBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Add Pension Modal -->
     <div class="modal" id="addPensionModal">
         <div class="modal-content">
@@ -1261,6 +1279,10 @@
                 <button id="login-btn" class="btn btn-accent" onclick="window.login()">Login</button>
                 <div id="user-info" style="display: none; align-items: center; gap: 10px;">
                     <span id="user-name" style="color: var(--light); font-weight: bold;"></span>
+                    <button id="settings-btn" class="btn btn-secondary" style="padding: 5px 10px; font-size: 0.8rem;"
+                        title="Settings">
+                        <i class="fas fa-cog"></i>
+                    </button>
                     <button id="logout-btn" class="btn btn-danger" style="padding: 5px 10px; font-size: 0.8rem;"
                         onclick="window.logout()">Logout</button>
                 </div>
@@ -1954,13 +1976,52 @@
             const input = document.getElementById('chat-input');
             const messagesArea = document.getElementById('chat-messages');
 
-            // API Key (Pre-configured)
-            // API Key (Pre-configured)
-            const defaultKey = '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';
-            let apiKey = localStorage.getItem('perplexity_api_key');
-            if (!apiKey || apiKey !== defaultKey) {
-                apiKey = defaultKey;
-                localStorage.setItem('perplexity_api_key', apiKey);
+            // Settings Modal Logic
+            const settingsModal = document.getElementById('settingsModal');
+            const settingsBtn = document.getElementById('settings-btn');
+            const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+            const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+            const apiKeyInput = document.getElementById('apiKeyInput');
+
+            // Open Settings
+            if (settingsBtn) {
+                settingsBtn.addEventListener('click', () => {
+                    settingsModal.style.display = 'flex';
+                    apiKeyInput.value = localStorage.getItem('perplexity_api_key') || '';
+                });
+            }
+
+            // Close Settings
+            if (closeSettingsBtn) {
+                closeSettingsBtn.addEventListener('click', () => {
+                    settingsModal.style.display = 'none';
+                });
+            }
+
+            // Save Settings
+            if (saveSettingsBtn) {
+                saveSettingsBtn.addEventListener('click', () => {
+                    const key = apiKeyInput.value.trim();
+                    if (key) {
+                        localStorage.setItem('perplexity_api_key', key);
+                        alert('API Key saved!');
+                        settingsModal.style.display = 'none';
+                    } else {
+                        alert('Please enter a valid API Key');
+                    }
+                });
+            }
+
+            // Close Settings on outside click
+            window.addEventListener('click', (e) => {
+                if (e.target === settingsModal) {
+                    settingsModal.style.display = 'none';
+                }
+            });
+
+            // API Key Retrieval
+            function getApiKey() {
+                return localStorage.getItem('perplexity_api_key');
             }
 
             // Expose toggle function globally
@@ -2051,6 +2112,19 @@
             }
 
             async function callPerplexityAPI(prompt) {
+                const apiKey = getApiKey();
+
+                if (!apiKey) {
+                    // Prompt user to enter key if missing
+                    const userKey = prompt("Please enter your Perplexity API Key (or set it in Settings):");
+                    if (userKey) {
+                        localStorage.setItem('perplexity_api_key', userKey);
+                        // Continue with new key
+                    } else {
+                        throw new Error("API Key is missing. Please add it in Settings.");
+                    }
+                }
+
                 const url = 'https://api.perplexity.ai/chat/completions';
                 const data = {
                     model: 'sonar',
@@ -2064,7 +2138,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${apiKey}`
+                        'Authorization': `Bearer ${getApiKey()}`
                     },
                     body: JSON.stringify(data)
                 });
